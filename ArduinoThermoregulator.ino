@@ -34,7 +34,7 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(8, 9, 10, 11, 12);
 // Note with hardware SPI MISO and SS pins aren't used but will still be read
 // and written to during SPI transfer.  Be careful sharing these pins!
 
-void printNumber(unsigned int n) {
+void printNumber(double n) {
   if (n < 10) {
     display.print(" ");
   }
@@ -47,17 +47,18 @@ void printNumber(unsigned int n) {
 }
 
 
-void print(unsigned int s1, unsigned int s2, unsigned int rq) {
+void print(double s1, double s2, double rq) {
   display.clearDisplay();
   
   display.setCursor(0, 0);
   display.setTextSize(1);
   display.println("SENSORS:");
   
-  display.setTextSize(2);
+  display.setTextSize(1);
   printNumber(s1);
   display.print(" ");
   printNumber(s2);
+  display.println("");
   display.println("");
 
   display.setTextSize(1);
@@ -69,7 +70,7 @@ void print(unsigned int s1, unsigned int s2, unsigned int rq) {
   display.display();
 }
 
-void printEnterNumber(unsigned int n) {
+void printEnterNumber(int n) {
   display.clearDisplay();
   
   display.setCursor(0, 0);
@@ -128,14 +129,14 @@ int i = 0;
 unsigned int mode = 0;
 
 int rq = random(300);
-int s1 = 0;
-int s2 = 0;
+double s1 = 0;
+double s2 = 0;
 
 int userRq = 0;
 
 void loop() {
-  s1 = (int) readTemperature1();
-  s2 = (int) readTemperature2();
+  s1 = readTemperature1();
+  s2 = readTemperature2();
   
   switch (mode) {
     case 0:
@@ -218,38 +219,38 @@ void mode1key(char key) {
 #define THERMISTOR_SAMPLES_DELAY_MS 20
 
 #define THERMISTOR1_PIN A0 
-#define THERMISTOR1_PIN_MAX_VALUE 1023
-#define THERMISTOR1_SERIES_RESISTANCE_OHM 100
+#define THERMISTOR1_PIN_MAX_VALUE 1023.0d
+#define THERMISTOR1_SERIES_RESISTANCE_KOHM 10.0d
  
-#define THERMISTOR1_NOMINAL 100000
-#define THERMISTOR1_TEMPERATURE_NOMINAL 25
-#define THERMISTOR1_BCOEFFICIENT 4036
+#define THERMISTOR1_NOMINAL_KOHM 100.0d
+#define THERMISTOR1_TEMPERATURE_NOMINAL 25.0d
+#define THERMISTOR1_BCOEFFICIENT 3950.0d
 
 #define THERMISTOR2_PIN A1 
-#define THERMISTOR2_PIN_MAX_VALUE 1023
-#define THERMISTOR2_SERIES_RESISTANCE_OHM 100
+#define THERMISTOR2_PIN_MAX_VALUE 1023.0d
+#define THERMISTOR2_SERIES_RESISTANCE_KOHM 10.0d
  
-#define THERMISTOR2_NOMINAL 100000
-#define THERMISTOR2_TEMPERATURE_NOMINAL 25
-#define THERMISTOR2_BCOEFFICIENT 4036
+#define THERMISTOR2_NOMINAL_KOHM 100.0d
+#define THERMISTOR2_TEMPERATURE_NOMINAL 25.0d
+#define THERMISTOR2_BCOEFFICIENT 3950.0d
 
 
-float readThermistorResistance(uint8_t pin, uint8_t pinMaxValue, uint8_t seriesResistance) {
-  float sum = 0.0d;
+double readThermistorResistance(uint8_t pin, double pinMaxValue, double seriesResistance) {
+  double sum = 0.0d;
   
   for (int i = 0; i < THERMISTOR_SAMPLES_NUM; i++) {
     sum += analogRead(pin);
     delay(THERMISTOR_SAMPLES_DELAY_MS);
   }
 
-  float average = sum / THERMISTOR_SAMPLES_NUM;  
-  float R = seriesResistance / ((pinMaxValue / average) - 1);
+  double average = sum / THERMISTOR_SAMPLES_NUM;  
+  double R = seriesResistance / ((pinMaxValue / average) - 1.0);
 
   return R;
 }
 
-float convertResistanceToTemperature(float R, float R0, float T0, float B) {
-  float steinhart = log(R / R0); // ln(R/Ro)
+double convertResistanceToTemperature(double R, double R0, double T0, double B) {
+  double steinhart = log(R / R0); // ln(R/Ro)
   
   steinhart /= B; // 1/B * ln(R/Ro)
   steinhart += 1.0 / (T0 + 273.15); // + (1/To)
@@ -259,16 +260,16 @@ float convertResistanceToTemperature(float R, float R0, float T0, float B) {
   return steinhart;
 }
 
-float readTemperature1() {
-  float resistance = readThermistorResistance(THERMISTOR1_PIN, THERMISTOR1_PIN_MAX_VALUE, THERMISTOR1_SERIES_RESISTANCE_OHM);
-  float temperature = convertResistanceToTemperature(resistance, THERMISTOR1_NOMINAL, THERMISTOR1_TEMPERATURE_NOMINAL, THERMISTOR1_BCOEFFICIENT);
+double readTemperature1() {
+  double resistance = readThermistorResistance(THERMISTOR1_PIN, THERMISTOR1_PIN_MAX_VALUE, THERMISTOR1_SERIES_RESISTANCE_KOHM);
+  double temperature = convertResistanceToTemperature(resistance, THERMISTOR1_NOMINAL_KOHM, THERMISTOR1_TEMPERATURE_NOMINAL, THERMISTOR1_BCOEFFICIENT);
 
   return temperature;
 }
 
-float readTemperature2() {
-  float resistance = readThermistorResistance(THERMISTOR2_PIN, THERMISTOR2_PIN_MAX_VALUE, THERMISTOR2_SERIES_RESISTANCE_OHM);
-  float temperature = convertResistanceToTemperature(resistance, THERMISTOR2_NOMINAL, THERMISTOR2_TEMPERATURE_NOMINAL, THERMISTOR2_BCOEFFICIENT);
+double readTemperature2() {
+  double resistance = readThermistorResistance(THERMISTOR2_PIN, THERMISTOR2_PIN_MAX_VALUE, THERMISTOR2_SERIES_RESISTANCE_KOHM);
+  double temperature = convertResistanceToTemperature(resistance, THERMISTOR2_NOMINAL_KOHM, THERMISTOR2_TEMPERATURE_NOMINAL, THERMISTOR2_BCOEFFICIENT);
 
   return temperature;
 }
