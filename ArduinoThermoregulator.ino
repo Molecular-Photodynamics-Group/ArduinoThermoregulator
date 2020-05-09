@@ -2,6 +2,9 @@
 #include "src/Adafruit/Adafruit_GFX.h"
 #include "src/Adafruit/Adafruit_PCD8544.h"
 #include "src/Keypad/Keypad.h"
+#include "src/PID/PID.h"
+
+
 
 const byte ROWS = 4; // 4 строки
 const byte COLS = 4; // 4 столбца
@@ -33,6 +36,20 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(8, 9, 10, 11, 12);
 // Adafruit_PCD8544 display = Adafruit_PCD8544(5, 4, 3);
 // Note with hardware SPI MISO and SS pins aren't used but will still be read
 // and written to during SPI transfer.  Be careful sharing these pins!
+
+
+#define RELAY_PIN 6
+
+//Define Variables we'll be connecting to
+double Setpoint, Input, Output;
+
+//Specify the links and initial tuning parameters
+double Kp = 0.5;
+double Ki = 1;
+double Kd = 1;
+
+PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
+
 
 void printNumber(double n) {
   if (n < 10) {
@@ -114,6 +131,13 @@ unsigned int convertKeyToNumber(char key) {
 
 
 void setup() {
+  Serial.begin(9600);
+  analogWrite(RELAY_PIN, 0);
+
+  myPID.SetOutputLimits(0, 255);
+  myPID.SetMode(AUTOMATIC);
+
+
   display.begin();
   display.setContrast(50);
   display.setTextColor(BLACK); 
@@ -128,9 +152,9 @@ int i = 0;
 // - 1 Set required temp
 unsigned int mode = 0;
 
-int rq = random(300);
+double rq = 40;
 double s1 = 0;
-double s2 = 0;
+double s2 = 0; 
 
 int userRq = 0;
 
@@ -138,6 +162,12 @@ void loop() {
   s1 = readTemperature1();
   s2 = readTemperature2();
   
+  Setpoint = rq;
+  Input = s1;
+  myPID.Compute();
+  Serial.println(Output);
+  analogWrite(RELAY_PIN, Output);
+
   switch (mode) {
     case 0:
       print(s1, s2, rq);
