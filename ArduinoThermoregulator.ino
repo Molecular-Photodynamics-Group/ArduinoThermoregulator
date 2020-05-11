@@ -3,9 +3,8 @@
 #include "src/Adafruit/Adafruit_PCD8544.h"
 #include "src/Keypad/Keypad.h"
 #include "src/PID/PID.h"
-#include "src/PID/PID_AutoTune.h"
 #include "src/Thermistor/Thermistor.h"
-#include "Constants.h";
+#include "Constants.h"
 
 Thermistor thermistor1 = Thermistor(
   THERMISTOR1_PIN, 
@@ -66,7 +65,6 @@ double Ki = 0.5;
 double Kd = 0;
 
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
-PID_ATune aTune(&Input, &Output);
 
 
 void printNumber(double n) {
@@ -146,8 +144,7 @@ unsigned int convertKeyToNumber(char key) {
   return 10;
 }
 
-double aTuneStep=50, aTuneNoise=1;
-unsigned int aTuneLookBack=20;
+
 
 void setup() {
   Serial.begin(9600);
@@ -161,16 +158,9 @@ void setup() {
   myPID.SetOutputLimits(0, 255);
   myPID.SetMode(AUTOMATIC);
 
-  aTune.SetNoiseBand(aTuneNoise);
-  aTune.SetOutputStep(aTuneStep);
-  aTune.SetLookbackSec((int)aTuneLookBack);
-  aTune.SetControlType(1);
-
   display.begin();
   display.setContrast(50);
   display.setTextColor(BLACK); 
-  
-  randomSeed(666);
 }
 
 int i = 0;
@@ -180,12 +170,11 @@ int i = 0;
 // - 1 Set required temp
 unsigned int mode = 0;
 
-double rq = 30;
+double rq = 20;
 double s1 = 0;
 double s2 = 0; 
 
 int userRq = 0;
-boolean tuning = false;
 
 void loop() {
   s1 = thermistor1.ReadTemperature();
@@ -193,42 +182,8 @@ void loop() {
   
   Setpoint = rq;
   Input = s1;
-
-  if(tuning)
-  {
-    byte val = (aTune.Runtime());
-
-    if (val!=0)
-    {
-      tuning = false;
-    }
-    if(!tuning)
-    { //we're done, set the tuning parameters
-      Kp = aTune.GetKp();
-      Ki = aTune.GetKi();
-      Kd = aTune.GetKd();
-
-      Serial.print("KP: ");
-      Serial.print(Kp);
-      Serial.print("KI: ");
-      Serial.print(Ki);
-      Serial.print("KD: ");      
-      Serial.println(Kd);
-
-      myPID.SetTunings(Kp, Ki, Kd);
-      AutoTuneHelper(false);
-    }
-  }
-  else myPID.Compute();
-
-
+  myPID.Compute();
   Serial.println(Output);
-  if (Output < 0) {
-    Output = 0;
-  }
-  if (Output > 255) {
-    Output = 255;
-  }
   analogWrite(RELAY_PIN, Output);
 
   switch (mode) {
@@ -239,12 +194,6 @@ void loop() {
     case 1:
       printEnterNumber(userRq);
       break;
-    
-    case 2:
-      tuning = true;
-      AutoTuneHelper(true);
-      mode = 0;
-      break;
   }
  
   char key = keypad.getKey();
@@ -253,21 +202,11 @@ void loop() {
   }
 }
 
-byte ATuneModeRemember=2;
-void AutoTuneHelper(boolean start)
-{
-  if(start)
-    ATuneModeRemember = myPID.GetMode();
-  else
-    myPID.SetMode(ATuneModeRemember);
-}
-
-
 void handleKey(char key) {
   if (key == 'D') {
     mode++;
 
-    if (mode > 2) {
+    if (mode > 1) {
       mode = 0;
     }
 
