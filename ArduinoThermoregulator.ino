@@ -3,7 +3,7 @@
 #include "src/Adafruit/Adafruit_PCD8544.h"
 #include "src/Keypad/Keypad.h"
 #include "src/PID/PID.h"
-
+#include "src/PID/PID_AutoTune.h"
 
 
 const byte ROWS = 4; // 4 строки
@@ -44,11 +44,12 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(8, 9, 10, 11, 12);
 double Setpoint, Input, Output;
 
 //Specify the links and initial tuning parameters
-double Kp = 0.5;
-double Ki = 1;
-double Kd = 1;
+double Kp = 15;
+double Ki = 0.5;
+double Kd = 0;
 
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
+PID_ATune aTune(&Input, &Output);
 
 
 void printNumber(double n) {
@@ -128,7 +129,8 @@ unsigned int convertKeyToNumber(char key) {
   return 10;
 }
 
-
+double aTuneStep=50, aTuneNoise=1;
+unsigned int aTuneLookBack=20;
 
 void setup() {
   Serial.begin(9600);
@@ -137,6 +139,10 @@ void setup() {
   myPID.SetOutputLimits(0, 255);
   myPID.SetMode(AUTOMATIC);
 
+  aTune.SetNoiseBand(aTuneNoise);
+  aTune.SetOutputStep(aTuneStep);
+  aTune.SetLookbackSec((int)aTuneLookBack);
+  aTune.SetControlType(1);
 
   display.begin();
   display.setContrast(50);
@@ -152,11 +158,12 @@ int i = 0;
 // - 1 Set required temp
 unsigned int mode = 0;
 
-double rq = 40;
+double rq = 205;
 double s1 = 0;
 double s2 = 0; 
 
 int userRq = 0;
+boolean tuning = false;
 
 void loop() {
   s1 = readTemperature1();
@@ -164,8 +171,42 @@ void loop() {
   
   Setpoint = rq;
   Input = s1;
-  myPID.Compute();
+
+  if(tuning)
+  {
+    byte val = (aTune.Runtime());
+
+    if (val!=0)
+    {
+      tuning = false;
+    }
+    if(!tuning)
+    { //we're done, set the tuning parameters
+      Kp = aTune.GetKp();
+      Ki = aTune.GetKi();
+      Kd = aTune.GetKd();
+
+      Serial.print("KP: ");
+      Serial.print(Kp);
+      Serial.print("KI: ");
+      Serial.print(Ki);
+      Serial.print("KD: ");      
+      Serial.println(Kd);
+
+      myPID.SetTunings(Kp, Ki, Kd);
+      AutoTuneHelper(false);
+    }
+  }
+  else myPID.Compute();
+
+
   Serial.println(Output);
+  if (Output < 0) {
+    Output = 0;
+  }
+  if (Output > 255) {
+    Output = 255;
+  }
   analogWrite(RELAY_PIN, Output);
 
   switch (mode) {
@@ -176,6 +217,12 @@ void loop() {
     case 1:
       printEnterNumber(userRq);
       break;
+    
+    case 2:
+      tuning = true;
+      AutoTuneHelper(true);
+      mode = 0;
+      break;
   }
  
   char key = keypad.getKey();
@@ -184,11 +231,21 @@ void loop() {
   }
 }
 
+byte ATuneModeRemember=2;
+void AutoTuneHelper(boolean start)
+{
+  if(start)
+    ATuneModeRemember = myPID.GetMode();
+  else
+    myPID.SetMode(ATuneModeRemember);
+}
+
+
 void handleKey(char key) {
   if (key == 'D') {
     mode++;
 
-    if (mode > 1) {
+    if (mode > 2) {
       mode = 0;
     }
 
@@ -245,8 +302,8 @@ void mode1key(char key) {
  */
  
 // http://arduino-diy.com/arduino-thermistor
-#define THERMISTOR_SAMPLES_NUM 5
-#define THERMISTOR_SAMPLES_DELAY_MS 20
+#define THERMISTOR_SAMPLES_NUM 20
+#define THERMISTOR_SAMPLES_DELAY_MS 10
 
 #define THERMISTOR1_PIN A0 
 #define THERMISTOR1_PIN_MAX_VALUE 1023.0d
