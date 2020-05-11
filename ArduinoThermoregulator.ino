@@ -4,26 +4,24 @@
 #include "src/Keypad/Keypad.h"
 #include "src/PID/PID.h"
 #include "src/PID/PID_AutoTune.h"
+#include "src/Thermistor/Thermistor.h"
+#include "Constants.h";
 
-// http://arduino-diy.com/arduino-thermistor
-#define THERMISTOR_SAMPLES_NUM 32
-#define THERMISTOR_SAMPLES_DELAY_MS 1
+Thermistor thermistor1 = Thermistor(
+  THERMISTOR1_PIN, 
+  THERMISTOR1_NOMINAL_RESISTANCE_KOHM, 
+  THERMISTOR1_NOMINAL_TEMPERATURE,
+  THERMISTOR2_BCOEFFICIENT,
+  THERMISTOR1_SERIES_RESISTANCE_KOHM
+);
 
-#define THERMISTOR1_PIN A0 
-#define THERMISTOR1_PIN_MAX_VALUE 1023.0d
-#define THERMISTOR1_SERIES_RESISTANCE_KOHM 2.5d
- 
-#define THERMISTOR1_NOMINAL_KOHM 100.0d
-#define THERMISTOR1_TEMPERATURE_NOMINAL 25.0d
-#define THERMISTOR1_BCOEFFICIENT 3950.0d
-
-#define THERMISTOR2_PIN A1 
-#define THERMISTOR2_PIN_MAX_VALUE 1023.0d
-#define THERMISTOR2_SERIES_RESISTANCE_KOHM 10.0d
- 
-#define THERMISTOR2_NOMINAL_KOHM 100.0d
-#define THERMISTOR2_TEMPERATURE_NOMINAL 25.0d
-#define THERMISTOR2_BCOEFFICIENT 3950.0d
+Thermistor thermistor2 = Thermistor(
+  THERMISTOR2_PIN, 
+  THERMISTOR2_NOMINAL_RESISTANCE_KOHM, 
+  THERMISTOR2_NOMINAL_TEMPERATURE,
+  THERMISTOR2_BCOEFFICIENT,
+  THERMISTOR2_SERIES_RESISTANCE_KOHM
+);
 
 const byte ROWS = 4; // 4 строки
 const byte COLS = 4; // 4 столбца
@@ -160,9 +158,6 @@ void setup() {
   
   analogWrite(RELAY_PIN, 0);
 
-  pinMode(THERMISTOR1_PIN, INPUT);
-  pinMode(THERMISTOR2_PIN, INPUT);
-
   myPID.SetOutputLimits(0, 255);
   myPID.SetMode(AUTOMATIC);
 
@@ -193,8 +188,8 @@ int userRq = 0;
 boolean tuning = false;
 
 void loop() {
-  s1 = readTemperature1();
-  s2 = readTemperature2();
+  s1 = thermistor1.ReadTemperature();
+  s2 = thermistor2.ReadTemperature();
   
   Setpoint = rq;
   Input = s1;
@@ -320,50 +315,4 @@ void mode1key(char key) {
       case '#': 
         break;
    }
-}
-
-/**
- * ==================================================================
- * THERMISTORS FUNCTIONS
- * ==================================================================
- */
- 
-
-double readThermistorResistance(uint8_t pin, double pinMaxValue, double seriesResistance) {
-  uint16_t sum = 0;
-  
-  for (int i = 0; i < THERMISTOR_SAMPLES_NUM; i++) {
-    sum += analogRead(pin);
-    delay(THERMISTOR_SAMPLES_DELAY_MS);
-  }
-
-  double average = ((double) sum) / THERMISTOR_SAMPLES_NUM;  
-  double R = seriesResistance / ((pinMaxValue / average) - 1.0);
-
-  return R;
-}
-
-double convertResistanceToTemperature(double R, double R0, double T0, double B) {
-  double steinhart = log(R / R0); // ln(R/Ro)
-  
-  steinhart /= B; // 1/B * ln(R/Ro)
-  steinhart += 1.0 / (T0 + 273.15); // + (1/To)
-  steinhart = 1.0 / steinhart; // инвертируем
-  steinhart -= 273.15; // конвертируем в градусы по Цельсию
-
-  return steinhart;
-}
-
-double readTemperature1() {
-  double resistance = readThermistorResistance(THERMISTOR1_PIN, THERMISTOR1_PIN_MAX_VALUE, THERMISTOR1_SERIES_RESISTANCE_KOHM);
-  double temperature = convertResistanceToTemperature(resistance, THERMISTOR1_NOMINAL_KOHM, THERMISTOR1_TEMPERATURE_NOMINAL, THERMISTOR1_BCOEFFICIENT);
-
-  return temperature;
-}
-
-double readTemperature2() {
-  double resistance = readThermistorResistance(THERMISTOR2_PIN, THERMISTOR2_PIN_MAX_VALUE, THERMISTOR2_SERIES_RESISTANCE_KOHM);
-  double temperature = convertResistanceToTemperature(resistance, THERMISTOR2_NOMINAL_KOHM, THERMISTOR2_TEMPERATURE_NOMINAL, THERMISTOR2_BCOEFFICIENT);
-
-  return temperature;
 }
