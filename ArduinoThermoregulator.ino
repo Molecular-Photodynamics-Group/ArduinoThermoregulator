@@ -5,6 +5,25 @@
 #include "src/PID/PID.h"
 #include "src/PID/PID_AutoTune.h"
 
+// http://arduino-diy.com/arduino-thermistor
+#define THERMISTOR_SAMPLES_NUM 32
+#define THERMISTOR_SAMPLES_DELAY_MS 1
+
+#define THERMISTOR1_PIN A0 
+#define THERMISTOR1_PIN_MAX_VALUE 1023.0d
+#define THERMISTOR1_SERIES_RESISTANCE_KOHM 2.5d
+ 
+#define THERMISTOR1_NOMINAL_KOHM 100.0d
+#define THERMISTOR1_TEMPERATURE_NOMINAL 25.0d
+#define THERMISTOR1_BCOEFFICIENT 3950.0d
+
+#define THERMISTOR2_PIN A1 
+#define THERMISTOR2_PIN_MAX_VALUE 1023.0d
+#define THERMISTOR2_SERIES_RESISTANCE_KOHM 10.0d
+ 
+#define THERMISTOR2_NOMINAL_KOHM 100.0d
+#define THERMISTOR2_TEMPERATURE_NOMINAL 25.0d
+#define THERMISTOR2_BCOEFFICIENT 3950.0d
 
 const byte ROWS = 4; // 4 строки
 const byte COLS = 4; // 4 столбца
@@ -38,7 +57,7 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(8, 9, 10, 11, 12);
 // and written to during SPI transfer.  Be careful sharing these pins!
 
 
-#define RELAY_PIN 6
+#define RELAY_PIN 5
 
 //Define Variables we'll be connecting to
 double Setpoint, Input, Output;
@@ -134,7 +153,15 @@ unsigned int aTuneLookBack=20;
 
 void setup() {
   Serial.begin(9600);
+  
+  TCCR3B = TCCR3B & B11111000 | B00000101;    // set timer 3 divisor to  1024 for PWM frequency of    30.64 Hz
+
+  pinMode(RELAY_PIN, OUTPUT);
+  
   analogWrite(RELAY_PIN, 0);
+
+  pinMode(THERMISTOR1_PIN, INPUT);
+  pinMode(THERMISTOR2_PIN, INPUT);
 
   myPID.SetOutputLimits(0, 255);
   myPID.SetMode(AUTOMATIC);
@@ -158,7 +185,7 @@ int i = 0;
 // - 1 Set required temp
 unsigned int mode = 0;
 
-double rq = 205;
+double rq = 30;
 double s1 = 0;
 double s2 = 0; 
 
@@ -301,36 +328,16 @@ void mode1key(char key) {
  * ==================================================================
  */
  
-// http://arduino-diy.com/arduino-thermistor
-#define THERMISTOR_SAMPLES_NUM 20
-#define THERMISTOR_SAMPLES_DELAY_MS 10
-
-#define THERMISTOR1_PIN A0 
-#define THERMISTOR1_PIN_MAX_VALUE 1023.0d
-#define THERMISTOR1_SERIES_RESISTANCE_KOHM 10.0d
- 
-#define THERMISTOR1_NOMINAL_KOHM 100.0d
-#define THERMISTOR1_TEMPERATURE_NOMINAL 25.0d
-#define THERMISTOR1_BCOEFFICIENT 3950.0d
-
-#define THERMISTOR2_PIN A1 
-#define THERMISTOR2_PIN_MAX_VALUE 1023.0d
-#define THERMISTOR2_SERIES_RESISTANCE_KOHM 10.0d
- 
-#define THERMISTOR2_NOMINAL_KOHM 100.0d
-#define THERMISTOR2_TEMPERATURE_NOMINAL 25.0d
-#define THERMISTOR2_BCOEFFICIENT 3950.0d
-
 
 double readThermistorResistance(uint8_t pin, double pinMaxValue, double seriesResistance) {
-  double sum = 0.0d;
+  uint16_t sum = 0;
   
   for (int i = 0; i < THERMISTOR_SAMPLES_NUM; i++) {
     sum += analogRead(pin);
     delay(THERMISTOR_SAMPLES_DELAY_MS);
   }
 
-  double average = sum / THERMISTOR_SAMPLES_NUM;  
+  double average = ((double) sum) / THERMISTOR_SAMPLES_NUM;  
   double R = seriesResistance / ((pinMaxValue / average) - 1.0);
 
   return R;
