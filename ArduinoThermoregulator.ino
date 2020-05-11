@@ -1,6 +1,4 @@
-#include <SPI.h>
-#include "src/Adafruit/Adafruit_GFX.h"
-#include "src/Adafruit/Adafruit_PCD8544.h"
+#include "src/Screen/Screen.h"
 #include "src/Keypad/Keypad.h"
 #include "src/PID/PID.h"
 #include "src/Thermistor/Thermistor.h"
@@ -34,24 +32,7 @@ byte rowPins[ROWS] = {18, 19, 20, 21};
 byte colPins[COLS] = {14, 15, 16, 17}; 
 Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
 
-// Software SPI (slower updates, more flexible pin options):
-// pin 7 - Serial clock out (SCLK)
-// pin 6 - Serial data out (DIN)
-// pin 5 - Data/Command select (D/C)
-
-// pin 4 - LCD chip select (CS)
-// pin 3 - LCD reset (RST)
-Adafruit_PCD8544 display = Adafruit_PCD8544(8, 9, 10, 11, 12);
-
-// Hardware SPI (faster, but must use certain hardware pins):
-// SCK is LCD serial clock (SCLK) - this is pin 13 on Arduino Uno
-// MOSI is LCD DIN - this is pin 11 on an Arduino Uno
-// pin 5 - Data/Command select (D/C)
-// pin 4 - LCD chip select (CS)
-// pin 3 - LCD reset (RST)
-// Adafruit_PCD8544 display = Adafruit_PCD8544(5, 4, 3);
-// Note with hardware SPI MISO and SS pins aren't used but will still be read
-// and written to during SPI transfer.  Be careful sharing these pins!
+Screen screen(8, 9, 10, 11, 12);
 
 
 #define RELAY_PIN 5
@@ -66,66 +47,6 @@ double Kd = 0;
 
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
-
-void printNumber(double n) {
-  if (n < 10) {
-    display.print(" ");
-  }
-  
-  if (n < 100) {
-    display.print(" ");
-  }
-  
-  display.print(n);
-}
-
-
-void print(double s1, double s2, double rq) {
-  display.clearDisplay();
-  
-  display.setCursor(0, 0);
-  display.setTextSize(1);
-  display.println("SENSORS:");
-  
-  display.setTextSize(1);
-  printNumber(s1);
-  display.print(" ");
-  printNumber(s2);
-  display.println("");
-  display.println("");
-
-  display.setTextSize(1);
-  display.println("REQUIRED:");
-  
-  display.setTextSize(2); 
-  printNumber(rq);
-
-  display.display();
-}
-
-void printEnterNumber(int n) {
-  display.clearDisplay();
-  
-  display.setCursor(0, 0);
-  display.setTextSize(1);
-  display.println("SET REQUIRED:");
-  
-  display.setTextSize(2);
-
-  if (n == 0) {
-    display.println("");
-  } else {
-    display.println(n);
-  }
-  
-  display.setCursor(0, 24);
-  display.setTextSize(1);
-  display.println("");
-  display.println("A - SUBMIT");
-  display.println("B - CANCEL");
-
-  display.display();
-}
 
 unsigned int convertKeyToNumber(char key) {
   switch (key) {
@@ -145,7 +66,6 @@ unsigned int convertKeyToNumber(char key) {
 }
 
 
-
 void setup() {
   Serial.begin(9600);
   
@@ -158,9 +78,7 @@ void setup() {
   myPID.SetOutputLimits(0, 255);
   myPID.SetMode(AUTOMATIC);
 
-  display.begin();
-  display.setContrast(50);
-  display.setTextColor(BLACK); 
+  screen.Init();
 }
 
 int i = 0;
@@ -188,11 +106,11 @@ void loop() {
 
   switch (mode) {
     case 0:
-      print(s1, s2, rq);
+      screen.ShowCurrentState(s1, s2, rq);
       break;
 
     case 1:
-      printEnterNumber(userRq);
+      screen.ShowRequiredSetting(userRq);
       break;
   }
  
