@@ -14,6 +14,10 @@
 
 
 #define RELAY_PIN 5
-#define RELAY_KP 15
-#define RELAY_KI 0.5
-#define RELAY_KD 0
+#define RELAY_KP 15.0d
+#define RELAY_KI 0.5d
+#define RELAY_KD 0.0d
+
+
+#define FUN_PIN A2
+#define FUN_MIN_TEMPERATURE 30.0d

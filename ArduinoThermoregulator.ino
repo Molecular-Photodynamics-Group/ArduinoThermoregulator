@@ -39,6 +39,8 @@ PIDRelay pidRelay(RELAY_PIN, RELAY_KP, RELAY_KI, RELAY_KD);
 void setup() {
   pidRelay.Init();
   screen.Init();
+  
+  pinMode(FUN_PIN, OUTPUT);
 }
 
 // Mode: 
@@ -61,6 +63,12 @@ void loop() {
     pidRelay.ComputeAndSet();
   } else {
     pidRelay.SetRelayValue(0);
+  }
+
+  if (sensor1Temp >= FUN_MIN_TEMPERATURE || requiredTemp >= FUN_MIN_TEMPERATURE) {
+    analogWrite(FUN_PIN, 255);
+  } else {
+    analogWrite(FUN_PIN, 0);
   }
 
   switch (mode) {
