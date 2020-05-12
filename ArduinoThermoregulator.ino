@@ -56,8 +56,12 @@ void loop() {
   sensor1Temp = thermistor1.ReadTemperature();
   sensor2Temp = thermistor2.ReadTemperature();
 
-  pidRelay.SetCurrentTemperature(sensor1Temp);
-  pidRelay.ComputeAndSet();  
+  if (sensor1Temp > 0) {
+    pidRelay.SetCurrentTemperature(sensor1Temp);
+    pidRelay.ComputeAndSet();
+  } else {
+    pidRelay.SetRelayValue(0);
+  }
 
   switch (mode) {
     case 0:

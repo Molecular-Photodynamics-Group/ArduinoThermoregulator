@@ -42,5 +42,9 @@ void PIDRelay::SetCurrentTemperature(double temperature) {
 void PIDRelay::ComputeAndSet() {
     pid.Compute();
 
-    analogWrite(relayPin, relayOutput);
+    SetRelayValue(relayOutput);
+}
+
+void PIDRelay::SetRelayValue(double value) {
+    analogWrite(relayPin, round(value));
 }

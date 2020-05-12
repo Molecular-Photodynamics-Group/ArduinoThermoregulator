@@ -16,6 +16,7 @@ class PIDRelay
         void SetCurrentTemperature(double temperature);
         
         void ComputeAndSet();
+        void SetRelayValue(double value);
     private:
         PID pid;
         uint8_t relayPin;
