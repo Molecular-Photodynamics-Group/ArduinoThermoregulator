@@ -17,6 +17,7 @@ class Thermistor
             float nominalResistanceKohm, 
             float nominalTemperature,
             float bCoeff, 
+            float cCoeff, 
             float seriesResistanceKohm
         );
         float ReadTemperature();					  
@@ -27,6 +28,7 @@ class Thermistor
         float nominalResistanceKohm;
         float nominalTemperature;
         float bCoeff;
+        float cCoeff;
         float seriesResistanceKohm;
 
         float ReadResistance();

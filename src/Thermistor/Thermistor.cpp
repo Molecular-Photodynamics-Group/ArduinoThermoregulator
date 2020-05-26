@@ -5,12 +5,14 @@ Thermistor::Thermistor(
     float nominalResistanceKohm, 
     float nominalTemperature,
     float bCoeff, 
+    float cCoeff, 
     float seriesResistanceKohm
 ) {
     this->pin = pin;
     this->nominalResistanceKohm = nominalResistanceKohm;
     this->nominalTemperature = nominalTemperature;
     this->bCoeff = bCoeff;
+    this->cCoeff = cCoeff;
     this->seriesResistanceKohm = seriesResistanceKohm;
 
     this->pinMaxValue = 1023.0f;
@@ -33,9 +35,10 @@ float Thermistor::ReadResistance() {
 }
 
 float Thermistor::ConvertResistanceToTemperature(float R) {
-    float steinhart = logf(R / nominalResistanceKohm); // ln(R/Ro)
+    float logR = logf(R / nominalResistanceKohm); // ln(R/Ro)
 
-    steinhart /= bCoeff; // 1/B * ln(R/Ro)
+    float steinhart = logR /  bCoeff; // 1/B * ln(R/Ro)
+    steinhart += logR * logR * logR / cCoeff;
     steinhart += 1.0 / (nominalTemperature + THERMISTOR_CELSIUS_SHIFT); // + (1/To)
     steinhart = 1.0 / steinhart; // инвертируем
     steinhart -= THERMISTOR_CELSIUS_SHIFT; // конвертируем в градусы по Цельсию
