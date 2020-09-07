@@ -15,10 +15,15 @@
 #define THERMISTOR2_C_COEFFICIENT -2291930.0d
 
 
-#define RELAY_PIN 5
-#define RELAY_KP 15.0d
-#define RELAY_KI 0.5d
-#define RELAY_KD 0.0d
+#define RELAY1_PIN 6
+#define RELAY1_KP 15.0d
+#define RELAY1_KI 0.5d
+#define RELAY1_KD 0.0d
+
+#define RELAY2_PIN 5
+#define RELAY2_KP 15.0d
+#define RELAY2_KI 0.5d
+#define RELAY2_KD 0.0d
 
 
 #define FUN_PIN A2

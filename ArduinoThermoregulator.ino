@@ -36,10 +36,12 @@ Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
 
 Screen screen(8, 9, 10, 11, 12);
 
-PIDRelay pidRelay(RELAY_PIN, RELAY_KP, RELAY_KI, RELAY_KD);
+PIDRelay pidRelay1(RELAY1_PIN, RELAY1_KP, RELAY1_KI, RELAY1_KD);
+PIDRelay pidRelay2(RELAY2_PIN, RELAY2_KP, RELAY2_KI, RELAY2_KD);
 
 void setup() {
-  pidRelay.Init();
+  pidRelay1.Init();
+  pidRelay2.Init();
   screen.Init();
   
   pinMode(FUN_PIN, OUTPUT);
@@ -61,13 +63,20 @@ void loop() {
   sensor2Temp = thermistor2.ReadTemperature();
 
   if (sensor1Temp > 0) {
-    pidRelay.SetCurrentTemperature(sensor1Temp);
-    pidRelay.ComputeAndSet();
+    pidRelay1.SetCurrentTemperature(sensor1Temp);
+    pidRelay1.ComputeAndSet();
   } else {
-    pidRelay.SetRelayValue(0);
+    pidRelay1.SetRelayValue(0);
   }
 
-  if (sensor1Temp >= FUN_MIN_TEMPERATURE || requiredTemp >= FUN_MIN_TEMPERATURE) {
+  if (sensor2Temp > 0) {
+    pidRelay2.SetCurrentTemperature(sensor2Temp);
+    pidRelay2.ComputeAndSet();
+  } else {
+    pidRelay2.SetRelayValue(0);
+  }
+
+  if (sensor1Temp >= FUN_MIN_TEMPERATURE || sensor2Temp >= FUN_MIN_TEMPERATURE || requiredTemp >= FUN_MIN_TEMPERATURE) {
     analogWrite(FUN_PIN, 255);
   } else {
     analogWrite(FUN_PIN, 0);
@@ -127,7 +136,8 @@ void mode1key(char key) {
   switch (key) {
       case 'A':
         requiredTemp = newRequired;
-        pidRelay.SetRequireTemperature(newRequired);
+        pidRelay1.SetRequireTemperature(newRequired);
+        pidRelay2.SetRequireTemperature(newRequired);
                 
       case 'B':
         newRequired = 0;
