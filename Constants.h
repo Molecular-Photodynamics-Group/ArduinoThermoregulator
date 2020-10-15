@@ -28,3 +28,6 @@
 
 #define FUN_PIN A2
 #define FUN_MIN_TEMPERATURE 30.0d
+
+// Comment it, if you don't want to have console support
+#define USE_CONSOLE

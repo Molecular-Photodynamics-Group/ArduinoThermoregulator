@@ -40,6 +40,10 @@ PIDRelay pidRelay1(RELAY1_PIN, RELAY1_KP, RELAY1_KI, RELAY1_KD);
 PIDRelay pidRelay2(RELAY2_PIN, RELAY2_KP, RELAY2_KI, RELAY2_KD);
 
 void setup() {
+  #ifdef USE_CONSOLE
+  Serial.begin(9600);
+  #endif
+
   pidRelay1.Init();
   pidRelay2.Init();
   screen.Init();
@@ -81,6 +85,12 @@ void loop() {
   } else {
     analogWrite(FUN_PIN, 0);
   }
+
+  #ifdef USE_CONSOLE
+  printToConsole();
+  readFromConsole();
+  #endif
+
 
   switch (mode) {
     case 0:
@@ -170,3 +180,41 @@ unsigned int convertKeyToNumber(char key) {
 
   return 10;
 }
+
+#ifdef USE_CONSOLE
+
+void printToConsole()
+{
+  static const unsigned long REFRESH_INTERVAL = 1000; // ms
+  static unsigned long lastRefreshTime = 0;
+
+  if (millis() - lastRefreshTime >= REFRESH_INTERVAL)
+  {
+    lastRefreshTime += REFRESH_INTERVAL;
+
+    Serial.print("Required: ");
+    Serial.println(requiredTemp);
+
+    Serial.print("Sensor 1: ");
+    Serial.println(sensor1Temp);
+
+    Serial.print("Sensor 2: ");
+    Serial.println(sensor2Temp);
+  }
+}
+
+void readFromConsole() {
+  String readString;
+
+  while (Serial.available()) {
+    char c = Serial.read(); 
+    readString += c;
+    delay(2);
+  }
+
+  if (readString.length() > 0) {
+    requiredTemp = readString.toInt();
+  }
+}
+
+#endif
